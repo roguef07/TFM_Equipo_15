@@ -1,2 +1,6 @@
 kaggle==1.8.3
 pandas
+notebook
+ipykernel
+jupyterlab
+matplotlib
