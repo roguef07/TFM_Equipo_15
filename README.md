@@ -8,7 +8,7 @@
 
 ## Sobre este repositorio:
 En este repositorio se encontrará el código desarrollado relacionado con nuestro proyecto
-- En la carpeta [scrapping]([https://pages.github.com/](https://github.com/roguef07/TFM_Equipo_15/tree/main/scrapping)) se encuentra todo lo relacionado al proceso de web scrapping para obtener iinformación relevante a analizar para generar el modelo predictivo de nuestro proyecto.
+- En la carpeta [scrapping]([https://pages.github.com/](https://github.com/roguef07/TFM_Equipo_15/tree/main/scrapping)) se encuentra todo lo relacionado al proceso de web scrapping para obtener información relevante a analizar para generar el modelo predictivo de nuestro proyecto.
 
 > [!NOTE]
 > Work in progress.
