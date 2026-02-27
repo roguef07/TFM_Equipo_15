@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS ejecuciones (
     id_dataset INTEGER,
     id_modelo INTEGER,
     parametros_json TEXT,
+    horizonte INTEGER,
     fecha_ejecucion TEXT,
     metricas_json TEXT,
     estado TEXT,
