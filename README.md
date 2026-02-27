@@ -79,10 +79,8 @@ pip install -r forecast_app/requirements.txt
 Una vez instaladas las dependencias, ejecutar:
 
 ```bash
-streamlit run app.py
+streamlit run forecast_app/app.py
 ```
-
-(o `main.py` si ese es el archivo principal)
 
 Esto abrirá automáticamente la aplicación en el navegador web.
 
