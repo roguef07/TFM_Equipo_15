@@ -91,7 +91,7 @@ Esto abrirá automáticamente la aplicación en el navegador web.
 En el repositorio se incluye un archivo:
 
 ```
-data/ejemplo.csv
+forecast_app/tabla_ventas.csv
 ```
 
 Este archivo puede usarse directamente desde la interfaz de Streamlit como **dataset de prueba**, permitiendo:
