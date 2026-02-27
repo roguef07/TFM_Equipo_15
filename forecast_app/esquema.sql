@@ -4,12 +4,12 @@ CREATE TABLE IF NOT EXISTS datasets (
     tipo_origen TEXT,
     fecha_carga TEXT,
     hash_archivo TEXT,
-    n_registros INTEGER,
+    registros INTEGER,
     columnas TEXT
 );
 
 CREATE TABLE IF NOT EXISTS ventas (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_venta INTEGER PRIMARY KEY AUTOINCREMENT,
     id_dataset INTEGER,
     fecha_venta TEXT NOT NULL,
     categoria TEXT NOT NULL,
@@ -21,8 +21,7 @@ CREATE TABLE IF NOT EXISTS modelos (
     id_modelo INTEGER PRIMARY KEY AUTOINCREMENT,
     tipo_modelo TEXT,
     version TEXT,
-    descripcion TEXT,
-    fecha_creacion TEXT
+    descripcion TEXT
 );
 
 CREATE TABLE IF NOT EXISTS ejecuciones (
@@ -30,10 +29,10 @@ CREATE TABLE IF NOT EXISTS ejecuciones (
     id_dataset INTEGER,
     id_modelo INTEGER,
     parametros_json TEXT,
-    horizonte INTEGER,
     fecha_ejecucion TEXT,
     metricas_json TEXT,
     estado TEXT,
+    iteraciones INTEGER,
     FOREIGN KEY(id_dataset) REFERENCES datasets(id_dataset),
     FOREIGN KEY(id_modelo) REFERENCES modelos(id_modelo)
 );
