@@ -1,1 +1,0 @@
-En este apartado subiremos lo relacionado al scrapping para la asignatura 5

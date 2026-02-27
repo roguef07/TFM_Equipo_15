@@ -21,6 +21,7 @@ La aplicación está desarrollada en Python, utiliza Streamlit como interfaz y S
 En este repositorio se encontrará el código desarrollado relacionado con nuestro proyecto
 - En la carpeta [API]([https://pages.github.com/](https://github.com/roguef07/TFM_Equipo_15/tree/main/API)) se encuentra todo lo relacionado al proceso de conectar con el API de Kaggle para obtener información relevante a analizar para generar el modelo predictivo de nuestro proyecto.
 - En la carpeta [forecast_app] ([https://pages.github.com/](https://github.com/roguef07/TFM_Equipo_15/tree/main/forecast_app)) se encuentra los modulos que pertenecen a nuestro MVP.
+- En la carpet [doc/diagramas] ([https://pages.github.com/](https://github.com/roguef07/TFM_Equipo_15/tree/main/doc/diagramas)) se puede encontrar el diagramado respectiivo al modelo de datos, tanto como sus editables como la imagen del modelo.
 
 ## Requisitos previos
 
@@ -115,6 +116,13 @@ No es necesario cargar datos externos para la evaluación del proyecto.
 5. Se ejecuta el modelo predictivo
 6. Las predicciones se persisten en la base de datos
 7. Los resultados se visualizan en la aplicación
+
+---
+
+## Modelo de datos
+
+El modelo de datos funcional del sistma es el siguiente, donde se tiene la interacción entre los distintos datasets, los modelos de predicción y la obtenciión de los resultados:
+![Modelo de datos (primera versión)](doc/diagramas/Modelo_sistema.jpg)
 
 ---
 
