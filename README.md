@@ -66,14 +66,6 @@ source venv/bin/activate
 
 ---
 
-### Instalar streamlit
-
-```bash
-pip install streamlit
-```
-
----
-
 ### Instalar dependencias
 
 ```bash
