@@ -12,7 +12,7 @@ def ingest_csv(file, filename):
     df = pd.read_csv(file)
 
     # Validación de columnas obligatorias
-    required_cols = {"fecha", "categoria", "cantidad_vendida"}
+    required_cols = {"fecha_venta", "categoria", "unidades_vendidas"}
     if not required_cols.issubset(df.columns):
         raise ValueError(f"El CSV debe contener las columnas: {required_cols}")
 
@@ -49,9 +49,9 @@ def ingest_csv(file, filename):
     for _, row in df.iterrows():
         rows.append((
             id_dataset,
-            str(row["fecha"]),
+            str(row["fecha_venta"]),
             str(row["categoria"]),
-            float(row["cantidad_vendida"])
+            float(row["unidades_vendidas"])
         ))
 
     # --- inserción por lotes (MUCHO más rápido) ---
