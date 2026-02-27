@@ -91,7 +91,7 @@ Esto abrirá automáticamente la aplicación en el navegador web.
 En el repositorio se incluye un archivo:
 
 ```
-[forecast_app/tabla_ventas.csv](https://github.com/roguef07/TFM_Equipo_15/blob/main/forecast_app/ventas_dummy.csv)
+(https://github.com/roguef07/TFM_Equipo_15/blob/main/forecast_app/ventas_dummy.csv)
 ```
 
 Este archivo puede usarse directamente desde la interfaz de Streamlit como **dataset de prueba**, permitiendo:
