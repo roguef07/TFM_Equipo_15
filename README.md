@@ -69,7 +69,7 @@ source venv/bin/activate
 ### Instalar dependencias
 
 ```bash
-pip install -r requirements.txt
+pip install -r forecast_app/requirements.txt
 ```
 
 ---
