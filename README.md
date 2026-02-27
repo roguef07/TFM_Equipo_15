@@ -21,7 +21,7 @@ La aplicación está desarrollada en Python, utiliza Streamlit como interfaz y S
 En este repositorio se encontrará el código desarrollado relacionado con nuestro proyecto
 - En la carpeta ([scraping](https://github.com/roguef07/TFM_Equipo_15/tree/main/scraping)) se encuentra todo lo relacionado al proceso de conectar con el API de Kaggle para obtener información relevante a analizar para generar el modelo predictivo de nuestro proyecto.
 - En la carpeta ([forecast_app](https://github.com/roguef07/TFM_Equipo_15/tree/main/forecast_app)) se encuentra los modulos que pertenecen a nuestro MVP.
-- En la carpet ([doc/diagramas] (https://github.com/roguef07/TFM_Equipo_15/tree/main/doc/diagramas)) se puede encontrar el diagramado respectiivo al modelo de datos, tanto como sus editables como la imagen del modelo.
+- En la carpet ([doc/diagramas](https://github.com/roguef07/TFM_Equipo_15/tree/main/doc/diagramas)) se puede encontrar el diagramado respectivo al modelo de datos, tanto como sus editables como la imagen del modelo.
 
 ## Requisitos previos
 
