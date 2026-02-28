@@ -66,14 +66,6 @@ source venv/bin/activate
 
 ---
 
-### Instalar streamlit
-
-```bash
-pip install streamlit
-```
-
----
-
 ### Instalar dependencias
 
 ```bash
@@ -99,7 +91,7 @@ Esto abrirá automáticamente la aplicación en el navegador web.
 En el repositorio se incluye un archivo:
 
 ```
-data/ejemplo.csv
+forecast_app/ventas_dummy.csv
 ```
 
 Este archivo puede usarse directamente desde la interfaz de Streamlit como **dataset de prueba**, permitiendo:
