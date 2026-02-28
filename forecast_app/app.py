@@ -8,7 +8,7 @@ import pandas as pd
 
 st.set_page_config(page_title="Forecasting App", layout="wide")
 
-st.title("📈 Forecasting App (TFM - MVP)")
+st.title("Forecasting App (TFM - MVP)")
 st.caption("Aplicación de forecasting con ARIMA sobre datos cargados por CSV")
 
 # Inicializar base de datos
@@ -17,7 +17,7 @@ init_db()
 # -------------------------
 # Upload CSV
 # -------------------------
-st.header("📤 Carga de datos")
+st.header("Carga de datos")
 
 uploaded = st.file_uploader("Sube un CSV", type=["csv"])
 
@@ -25,14 +25,14 @@ if uploaded:
     with st.spinner("⏳ Procesando CSV e ingiriendo datos..."):
         id_dataset = ingest_csv(uploaded, uploaded.name)
 
-    st.success(f"✅ Dataset guardado con ID: {id_dataset}")
+    st.success(f"Dataset guardado con ID: {id_dataset}")
 
     st.divider()
 
     # -------------------------
     # Configuración del modelo
     # -------------------------
-    st.header("⚙️ Configuración del modelo ARIMA")
+    st.header("Configuración del modelo ARIMA")
 
     col1, col2, col3 = st.columns(3)
 
@@ -45,7 +45,7 @@ if uploaded:
     with col3:
         categoria = st.text_input("Categoría (opcional)", value="", help="Dejar vacío para todas las categorías")
 
-    st.subheader("📐 Parámetros ARIMA")
+    st.subheader("Parámetros ARIMA")
 
     col4, col5, col6 = st.columns(3)
     with col4:
@@ -55,7 +55,7 @@ if uploaded:
     with col6:
         q = st.number_input("q (MA)", min_value=0, value=1)
 
-    if st.button("🚀 Ejecutar Forecast"):
+    if st.button("Ejecutar Forecast"):
         with st.spinner("📈 Entrenando modelo y generando pronóstico..."):
 
             # Registrar modelo
@@ -89,17 +89,17 @@ if uploaded:
                 config=config
             )
 
-        st.success("✅ Forecast generado y guardado en la base de datos")
+        st.success("Forecast generado y guardado en la base de datos")
 
         # -------------------------
         # Resultados
         # -------------------------
-        st.header("📊 Resultados")
+        st.header("Resultados")
 
         st.dataframe(forecast_df, use_container_width=True)
 
         # Visualización simple
-        st.subheader("📈 Visualización")
+        st.subheader("Visualización")
 
         if not forecast_df.empty:
             for cat, g in forecast_df.groupby("categoria"):
