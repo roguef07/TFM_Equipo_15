@@ -60,9 +60,3 @@ Variables principales:
 Diseñar un pipeline de datos escalable basado en tecnologías cloud para el procesamiento y visualización de información comercial.
 
 ---
-
-## Integrantes
-
-- Stephanie Solano
-- (nombre compañera)
-
