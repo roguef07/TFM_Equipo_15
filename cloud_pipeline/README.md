@@ -79,3 +79,5 @@ cloud_pipeline/
 ├── docker-compose.yml
 ├── requirements.txt
 └── README.md
+
+# Arquitectura General del Pipeline
