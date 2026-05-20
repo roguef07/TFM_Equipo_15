@@ -4,3 +4,4 @@ pyspark
 sqlalchemy
 psycopg2-binary
 pyarrow
+Kaggle
