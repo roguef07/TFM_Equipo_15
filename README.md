@@ -298,4 +298,4 @@ Conectar Power BI a PostgreSQL utilizando los siguientes parámetros:
 Proyecto desarrollado como parte de la asignatura de:
 
 **Cloud Computing y Big Data**  
-TFM Equipo 15 – Máster en Analítica de Datos
+TFM Equipo 15 – Máster en  Big Data and Business Intelligence
