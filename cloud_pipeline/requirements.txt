@@ -1,7 +1,9 @@
 pandas
+numpy
 boto3
 pyspark
 sqlalchemy
 psycopg2-binary
 pyarrow
-Kaggle
+kaggle
+requests
