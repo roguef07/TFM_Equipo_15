@@ -1,129 +1,153 @@
-# Sistema de apoyo a la toma de decisiones empresariales mediante modelos de pronóstico automatizado de ventas
-## Equipo 15 - Master en Big Data & Business Intelligence
+Cloud Pipeline – Customer Shopping Data
+Arquitectura Cloud-Native para Forecasting Retail
 
-- Francisco Javier Robles Guevara 
-- Marina Palhares Telles Claro 
-- Stephany Maria Solano Salas
-- Tessa Veronica Yañez Alonso
+Descripción del Proyecto
+Este proyecto corresponde al desarrollo del MVP técnico de la asignatura de Cloud Computing y Big Data, utilizando como base el Trabajo Fin de Máster (TFM) del equipo.
 
-## Sobre este repositorio:
-Este repositorio contiene el MVP (Producto Mínimo Viable) del Trabajo de Fin de Máster (TFM), cuyo objetivo es construir una aplicación local para la predicción de demanda/ventas mediante modelos de forecasting, integrando:
+El objetivo es construir un pipeline de datos tipo Cloud-Native reproducible localmente mediante Docker, aplicando conceptos de:
 
-- Ingesta de datos
-- Persistencia en base de datos
-- Pipeline de modelado
-- Generación de predicciones
-- Visualización interactiva
+Data Lakehouse
+Arquitectura OLTP vs OLAP
+Procesamiento distribuido
+Contenedorización
+Business Intelligence
+El proyecto utiliza el dataset Customer Shopping Dataset obtenido mediante la API de Kaggle.
 
-La aplicación está desarrollada en Python, utiliza Streamlit como interfaz y SQLite como sistema gestor de base de datos.
+Arquitectura General del Pipeline
+Kaggle API
+↓
+LocalStack (S3 – Capa Raw)
+↓
+PySpark (Transformación y limpieza)
+↓
+Parquet (Capa Gold)
+↓
+PostgreSQL (Data Warehouse)
+↓
+SQL Data Mart
+↓
+Power BI
 
-## Estructura del repositorio
-En este repositorio se encontrará el código desarrollado relacionado con nuestro proyecto
-- En la carpeta ([scraping](https://github.com/roguef07/TFM_Equipo_15/tree/main/scraping)) se encuentra todo lo relacionado al proceso de conectar con el API de Kaggle para obtener información relevante a analizar para generar el modelo predictivo de nuestro proyecto.
-- En la carpeta ([forecast_app](https://github.com/roguef07/TFM_Equipo_15/tree/main/forecast_app)) se encuentra los modulos que pertenecen a nuestro MVP.
-- En la carpet ([doc/diagramas](https://github.com/roguef07/TFM_Equipo_15/tree/main/doc/diagramas)) se puede encontrar el diagramado respectivo al modelo de datos, tanto como sus editables como la imagen del modelo.
+Tecnologías Utilizadas
+Tecnología	Propósito
+Docker	Contenedorización
+Docker Compose	Orquestación local
+LocalStack	Simulación de AWS S3
+PySpark	Procesamiento distribuido
+PostgreSQL	Data Warehouse
+SQLAlchemy	Conexión Python ↔ PostgreSQL
+Kaggle API	Descarga automática del dataset
+Power BI	Visualización y dashboards
+Kubernetes / Minikube	Bonus opcional
+Estructura del Proyecto
+cloud_pipeline/
+│
+├── data/
+│
+├── docs/
+│
+├── kubernetes/
+│
+├── powerbi/
+│
+├── screenshots/
+│
+├── scripts/
+│   ├── 00_download_kaggle.py
+│   ├── 01_upload_s3.py
+│   ├── 02_spark_transform.py
+│   └── 03_load_postgres.py
+│
+├── sql/
+│   └── datamart.sql
+│
+├── docker-compose.yml
+├── requirements.txt
+└── README.md
+Dataset Utilizado
+Dataset: Customer Shopping Dataset
 
-## Requisitos previos
+Fuente: https://www.kaggle.com/datasets/mehmettahiraslan/customer-shopping-dataset
 
-Antes de ejecutar la aplicación, es necesario contar con:
+El dataset contiene información de compras retail, incluyendo:
 
-* Python **3.9 o superior**
-* pip
-* Entorno virtual (recomendado)
+Fecha de compra
+Categoría
+Precio
+Cantidad
+Método de pago
+Género
+Edad
+Centro comercial
+Preparación del Entorno
+Clonar el repositorio git clone https://github.com/roguef07/TFM_Equipo_15.git
+Entrar a la rama cloud git checkout Asignatura-Cloud
+Instalar dependencias pip install -r requirements.txt
+Configuración de Kaggle API
+Crear cuenta en Kaggle https://www.kaggle.com/
 
----
+Descargar credenciales Ir a: Profile → Settings → API → Create New Token Se descargará un archivo: kaggle.json
 
-## Instalación
+Configurar Kaggle en Windows Mover el archivo a: C:\Users\TU_USUARIO.kaggle\
 
-### Clonar el repositorio
+Importante: para que funcione localmente, cada persona debe tener su kaggle.json configurado en su compu. No se sube a GitHub.
 
-```bash
-git clone <url-del-repositorio>
-cd <nombre-del-repo>
-```
+Levantar el Entorno Docker
+Ejecutar: docker-compose up -d
 
----
+Esto levantará:
 
-### Crear entorno virtual (opcional pero recomendado)
+LocalStack
+PostgreSQL
+Spark
+Pipeline de Ejecución
+Paso 1 – Descargar Dataset desde Kaggle
 
-```bash
-python -m venv venv
-```
+python scripts/00_download_kaggle.py
 
-Activar el entorno:
+Resultado esperado: Dataset descargado automáticamente CSV almacenado en data/
 
-**Windows:**
+Paso 2 – Subida a LocalStack S3 (Capa Raw) python scripts/01_upload_s3.py
 
-```bash
-venv\Scripts\activate
-```
+Resultado esperado: Bucket S3 creado CSV almacenado en LocalStack
 
-**Linux/Mac:**
+Paso 3 – Procesamiento PySpark (Capa Gold) python scripts/02_spark_transform.py
 
-```bash
-source venv/bin/activate
-```
+Transformaciones realizadas:
 
----
+Limpieza básica
+Tratamiento de nulos
+Conversión de fechas
+Agregación por categoría y fecha
+Resultado esperado:
 
-### Instalar dependencias
+Datos almacenados en formato Parquet
+Paso 4 – Ingesta al Data Warehouse PostgreSQL python scripts/03_load_postgres.py
 
-```bash
-pip install -r forecast_app/requirements.txt
-```
+Resultado esperado:
 
----
+Tabla cargada en PostgreSQL
+Paso 5 – Creación del Data Mart
 
-## Ejecución de la aplicación
+Ejecutar: sql/datamart.sql
 
-Una vez instaladas las dependencias, ejecutar:
+Resultado esperado:
 
-```bash
-python -m streamlit run forecast_app/app.py
-```
+Vista optimizada para BI
+Conexión con Power BI
+Conectar Power BI a PostgreSQL:
 
-Esto abrirá automáticamente la aplicación en el navegador web.
+Parámetro Valor Servidor localhost Puerto 5432 Base de datos retail_dw Usuario admin Contraseña admin123
 
----
-
-## Uso del dataset de ejemplo
-
-En el repositorio se incluye un archivo:
-
-```
-forecast_app/ventas_dummy.csv
-```
-
-Este archivo puede usarse directamente desde la interfaz de Streamlit como **dataset de prueba**, permitiendo:
-
-* Probar la ingesta de datos
-* Ver la persistencia en SQLite
-* Ejecutar el pipeline de predicción
-* Visualizar resultados
-
-No es necesario cargar datos externos para la evaluación del proyecto.
-
----
-
-## Flujo de funcionamiento
-
-1. El usuario interactúa con la interfaz Streamlit
-2. Se cargan los datos (CSV)
-3. Los datos son procesados por el módulo de ingesta
-4. Se almacenan en SQLite
-5. Se ejecuta el modelo predictivo
-6. Las predicciones se persisten en la base de datos
-7. Los resultados se visualizan en la aplicación
-
----
-
-## Modelo de datos
-
-El modelo de datos funcional del sistma es el siguiente, donde se tiene la interacción entre los distintos datasets, los modelos de predicción y la obtenciión de los resultados:
-![Modelo de datos (primera versión)](doc/diagramas/Modelo_sistema.jpg)
-
----
-
-
-> [!NOTE]
-> Work in progress.
+Buenas Prácticas Aplicadas
+Arquitectura reproducible con Docker
+Separación entre Raw y Gold
+Uso de Parquet para optimización analítica
+Separación OLTP vs OLAP
+Procesamiento distribuido con Spark
+Versionamiento mediante GitHub
+Posibles Mejoras Futuras
+Automatización con Apache Airflow
+Orquestación con Kubernetes
+Dashboards en tiempo real
+Integración con servicios cloud reales (AWS/GCP)
