@@ -120,6 +120,8 @@ kaggle.json
 Mover el archivo a:
 C:\Users\TU_USUARIO\.kaggle\
 
+*Importante*: para que funcione localmente, cada persona debe tener su kaggle.json configurado en su compu. No se sube a GitHub.
+
 # Levantar el Entorno Docker
 
 Ejecutar:
