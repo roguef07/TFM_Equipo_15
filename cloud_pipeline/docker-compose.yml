@@ -1,12 +1,13 @@
-version: '3.9'
+version: "3.9"
 
 services:
 
   localstack:
-    image: localstack/localstack
+    image: localstack/localstack:3.8
     container_name: localstack
     ports:
       - "4566:4566"
+      - "4510-4559:4510-4559"
     environment:
       - SERVICES=s3
       - DEBUG=1
@@ -20,8 +21,13 @@ services:
       POSTGRES_DB: retail_dw
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
 
   spark:
     image: apache/spark:3.5.1
     container_name: spark_engine
     tty: true
+
+volumes:
+  postgres_data:
