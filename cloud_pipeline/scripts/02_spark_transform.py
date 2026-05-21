@@ -2,12 +2,21 @@ import os
 import shutil
 
 import boto3
+import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    avg, coalesce, col, count, countDistinct, max, min,
-    round, sum, to_date, trim
+    avg,
+    col,
+    count,
+    max,
+    min,
+    make_date,
+    regexp_extract,
+    round,
+    sum,
+    trim,
+    when,
 )
-
 
 BUCKET_NAME = "data-lake-crudo"
 CSV_FILE = "customer_shopping_data.csv"
@@ -35,7 +44,12 @@ def download_raw_from_s3(s3_client):
     os.makedirs(RAW_DIR, exist_ok=True)
 
     print("Descargando CSV crudo desde LocalStack S3...")
-    s3_client.download_file(BUCKET_NAME, S3_RAW_KEY, LOCAL_RAW_FILE)
+
+    s3_client.download_file(
+        BUCKET_NAME,
+        S3_RAW_KEY,
+        LOCAL_RAW_FILE
+    )
 
     print(f"CSV descargado en: {LOCAL_RAW_FILE}")
 
@@ -46,18 +60,30 @@ def upload_gold_to_s3(s3_client):
     for root, _, files in os.walk(GOLD_DIR):
         for file in files:
             local_path = os.path.join(root, file)
-            relative_path = os.path.relpath(local_path, GOLD_DIR).replace("\\", "/")
+
+            relative_path = os.path.relpath(
+                local_path,
+                GOLD_DIR
+            ).replace("\\", "/")
+
             s3_key = f"{S3_GOLD_PREFIX}/{relative_path}"
 
-            s3_client.upload_file(local_path, BUCKET_NAME, s3_key)
+            s3_client.upload_file(
+                local_path,
+                BUCKET_NAME,
+                s3_key
+            )
 
-    print(f"Capa Gold subida a s3://{BUCKET_NAME}/{S3_GOLD_PREFIX}/")
+    print(
+        f"Capa Gold subida a s3://{BUCKET_NAME}/{S3_GOLD_PREFIX}/"
+    )
 
 
 def create_spark_session():
     return (
         SparkSession.builder
         .appName("CustomerShoppingPipeline")
+        .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
         .getOrCreate()
     )
 
@@ -69,6 +95,41 @@ def show_null_counts(df):
     ]).show(truncate=False)
 
 
+def parse_invoice_date(df):
+    df = (
+        df
+        .withColumn(
+            "date_part_1",
+            regexp_extract(col("invoice_date"), r"^(\d{1,2})/", 1).cast("int")
+        )
+        .withColumn(
+            "date_part_2",
+            regexp_extract(col("invoice_date"), r"^\d{1,2}/(\d{1,2})/", 1).cast("int")
+        )
+        .withColumn(
+            "date_year",
+            regexp_extract(col("invoice_date"), r"(\d{4})$", 1).cast("int")
+        )
+    )
+
+    df = df.withColumn(
+        "invoice_date",
+        when(
+            col("date_part_1") > 12,
+            make_date(col("date_year"), col("date_part_2"), col("date_part_1"))
+        )
+        .when(
+            col("date_part_2") > 12,
+            make_date(col("date_year"), col("date_part_1"), col("date_part_2"))
+        )
+        .otherwise(
+            make_date(col("date_year"), col("date_part_2"), col("date_part_1"))
+        )
+    )
+
+    return df.drop("date_part_1", "date_part_2", "date_year")
+
+
 def main():
     s3_client = create_s3_client()
     download_raw_from_s3(s3_client)
@@ -76,6 +137,7 @@ def main():
     spark = create_spark_session()
 
     print("Leyendo datos con Spark...")
+
     df = (
         spark.read
         .option("header", True)
@@ -84,7 +146,9 @@ def main():
     )
 
     print("\n--- EDA INICIAL ---")
+
     total_rows = df.count()
+
     print(f"Total de registros iniciales: {total_rows}")
     print(f"Total de columnas: {len(df.columns)}")
 
@@ -116,15 +180,17 @@ def main():
 
     df_clean = df.dropDuplicates()
 
-    df_clean = df_clean.dropna(subset=[
-        "invoice_no",
-        "customer_id",
-        "category",
-        "quantity",
-        "price",
-        "invoice_date",
-        "shopping_mall",
-    ])
+    df_clean = df_clean.dropna(
+        subset=[
+            "invoice_no",
+            "customer_id",
+            "category",
+            "quantity",
+            "price",
+            "invoice_date",
+            "shopping_mall",
+        ]
+    )
 
     df_clean = (
         df_clean
@@ -139,14 +205,7 @@ def main():
         .withColumn("price", col("price").cast("double"))
     )
 
-    df_clean = df_clean.withColumn(
-        "invoice_date",
-        coalesce(
-            to_date(col("invoice_date"), "dd/MM/yyyy"),
-            to_date(col("invoice_date"), "d/M/yyyy"),
-            to_date(col("invoice_date"), "yyyy-MM-dd"),
-        )
-    )
+    df_clean = parse_invoice_date(df_clean)
 
     df_clean = df_clean.filter(
         (col("invoice_date").isNotNull())
@@ -160,7 +219,24 @@ def main():
         round(col("quantity") * col("price"), 2)
     )
 
-    print(f"Total de registros después de limpieza: {df_clean.count()}")
+    print(
+        f"Total de registros después de limpieza: {df_clean.count()}"
+    )
+
+    print("\n--- EDA DESPUÉS DE LIMPIEZA ---")
+
+    print("\nIndicadores generales:")
+    df_clean.agg(
+        count("*").alias("total_transacciones"),
+        round(sum("total_sales"), 2).alias("ventas_totales"),
+        round(avg("total_sales"), 2).alias("ticket_promedio"),
+    ).show(truncate=False)
+
+    print("\nRango de fechas:")
+    df_clean.agg(
+        min("invoice_date").alias("fecha_minima"),
+        max("invoice_date").alias("fecha_maxima"),
+    ).show(truncate=False)
 
     print("\n--- TRANSFORMACIÓN CAPA GOLD ---")
 
@@ -176,21 +252,36 @@ def main():
             count("*").alias("cantidad_transacciones"),
             round(avg("total_sales"), 2).alias("ticket_promedio"),
         )
-        .orderBy("invoice_date", "category", "shopping_mall")
+        .orderBy(
+            "invoice_date",
+            "category",
+            "shopping_mall"
+        )
     )
 
     df_gold.show(20, truncate=False)
 
+    print("Guardando capa Gold local en formato Parquet...")
+
     if os.path.exists(GOLD_DIR):
         shutil.rmtree(GOLD_DIR)
 
-    print("Guardando capa Gold local en formato Parquet...")
-    df_gold.write.mode("overwrite").parquet(GOLD_DIR)
+    os.makedirs(GOLD_DIR, exist_ok=True)
+
+    gold_file_path = os.path.join(
+        GOLD_DIR,
+        "customer_sales_gold.parquet"
+    )
+
+    df_gold.toPandas().to_parquet(
+        gold_file_path,
+        index=False
+    )
 
     upload_gold_to_s3(s3_client)
 
     print("Proceso finalizado correctamente.")
-    print(f"Capa Gold local: {GOLD_DIR}")
+    print(f"Capa Gold local: {gold_file_path}")
 
     spark.stop()
 
