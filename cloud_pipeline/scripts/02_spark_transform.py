@@ -1,39 +1,63 @@
 import os
+import shutil
 
+import boto3
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    avg,
-    coalesce,
-    col,
-    count,
-    countDistinct,
-    max,
-    min,
-    round,
-    sum,
-    to_date,
-    trim,
+    avg, coalesce, col, count, countDistinct, max, min,
+    round, sum, to_date, trim
 )
 
 
 BUCKET_NAME = "data-lake-crudo"
+CSV_FILE = "customer_shopping_data.csv"
 
-INPUT_PATH = f"s3a://{BUCKET_NAME}/raw/customer_shopping_data.csv"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
+GOLD_DIR = os.path.join(BASE_DIR, "data", "gold", "customer_sales_parquet")
 
-OUTPUT_PATH_S3 = f"s3a://{BUCKET_NAME}/gold/customer_sales_parquet"
-OUTPUT_PATH_LOCAL = "data/gold/customer_sales_parquet"
+LOCAL_RAW_FILE = os.path.join(RAW_DIR, CSV_FILE)
+S3_RAW_KEY = f"raw/{CSV_FILE}"
+S3_GOLD_PREFIX = "gold/customer_sales_parquet"
+
+
+def create_s3_client():
+    return boto3.client(
+        "s3",
+        endpoint_url="http://localhost:4566",
+        aws_access_key_id="test",
+        aws_secret_access_key="test",
+        region_name="us-east-1",
+    )
+
+
+def download_raw_from_s3(s3_client):
+    os.makedirs(RAW_DIR, exist_ok=True)
+
+    print("Descargando CSV crudo desde LocalStack S3...")
+    s3_client.download_file(BUCKET_NAME, S3_RAW_KEY, LOCAL_RAW_FILE)
+
+    print(f"CSV descargado en: {LOCAL_RAW_FILE}")
+
+
+def upload_gold_to_s3(s3_client):
+    print("Subiendo capa Gold Parquet a LocalStack S3...")
+
+    for root, _, files in os.walk(GOLD_DIR):
+        for file in files:
+            local_path = os.path.join(root, file)
+            relative_path = os.path.relpath(local_path, GOLD_DIR).replace("\\", "/")
+            s3_key = f"{S3_GOLD_PREFIX}/{relative_path}"
+
+            s3_client.upload_file(local_path, BUCKET_NAME, s3_key)
+
+    print(f"Capa Gold subida a s3://{BUCKET_NAME}/{S3_GOLD_PREFIX}/")
 
 
 def create_spark_session():
     return (
         SparkSession.builder
         .appName("CustomerShoppingPipeline")
-        .config("spark.hadoop.fs.s3a.endpoint", "http://localhost:4566")
-        .config("spark.hadoop.fs.s3a.access.key", "test")
-        .config("spark.hadoop.fs.s3a.secret.key", "test")
-        .config("spark.hadoop.fs.s3a.path.style.access", "true")
-        .config("spark.hadoop.fs.s3a.connection.ssl.enabled", "false")
-        .config("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
         .getOrCreate()
     )
 
@@ -46,16 +70,17 @@ def show_null_counts(df):
 
 
 def main():
-    os.makedirs("data/gold", exist_ok=True)
+    s3_client = create_s3_client()
+    download_raw_from_s3(s3_client)
 
     spark = create_spark_session()
 
-    print("Leyendo datos desde S3 Raw...")
+    print("Leyendo datos con Spark...")
     df = (
         spark.read
         .option("header", True)
         .option("inferSchema", True)
-        .csv(INPUT_PATH)
+        .csv(LOCAL_RAW_FILE)
     )
 
     print("\n--- EDA INICIAL ---")
@@ -79,28 +104,13 @@ def main():
     df.describe(["age", "quantity", "price"]).show()
 
     print("\nDistribución por categoría:")
-    (
-        df.groupBy("category")
-        .count()
-        .orderBy(col("count").desc())
-        .show(truncate=False)
-    )
+    df.groupBy("category").count().orderBy(col("count").desc()).show(truncate=False)
 
     print("\nDistribución por método de pago:")
-    (
-        df.groupBy("payment_method")
-        .count()
-        .orderBy(col("count").desc())
-        .show(truncate=False)
-    )
+    df.groupBy("payment_method").count().orderBy(col("count").desc()).show(truncate=False)
 
     print("\nDistribución por centro comercial:")
-    (
-        df.groupBy("shopping_mall")
-        .count()
-        .orderBy(col("count").desc())
-        .show(truncate=False)
-    )
+    df.groupBy("shopping_mall").count().orderBy(col("count").desc()).show(truncate=False)
 
     print("\n--- LIMPIEZA DE DATOS ---")
 
@@ -152,55 +162,6 @@ def main():
 
     print(f"Total de registros después de limpieza: {df_clean.count()}")
 
-    print("\nVista de datos limpios:")
-    df_clean.show(10, truncate=False)
-
-    print("\n--- EDA DESPUÉS DE LIMPIEZA ---")
-
-    print("\nVentas totales por categoría:")
-    (
-        df_clean.groupBy("category")
-        .agg(
-            round(sum("total_sales"), 2).alias("ventas_totales"),
-            sum("quantity").alias("unidades_vendidas"),
-            count("*").alias("cantidad_transacciones"),
-        )
-        .orderBy(col("ventas_totales").desc())
-        .show(truncate=False)
-    )
-
-    print("\nVentas totales por centro comercial:")
-    (
-        df_clean.groupBy("shopping_mall")
-        .agg(
-            round(sum("total_sales"), 2).alias("ventas_totales"),
-            count("*").alias("cantidad_transacciones"),
-        )
-        .orderBy(col("ventas_totales").desc())
-        .show(truncate=False)
-    )
-
-    print("\nVentas por método de pago:")
-    (
-        df_clean.groupBy("payment_method")
-        .agg(
-            round(sum("total_sales"), 2).alias("ventas_totales"),
-            count("*").alias("cantidad_transacciones"),
-        )
-        .orderBy(col("ventas_totales").desc())
-        .show(truncate=False)
-    )
-
-    print("\nIndicadores generales:")
-    df_clean.agg(
-        count("*").alias("total_transacciones"),
-        countDistinct("customer_id").alias("clientes_unicos"),
-        round(sum("total_sales"), 2).alias("ventas_totales"),
-        round(avg("total_sales"), 2).alias("ticket_promedio"),
-        min("invoice_date").alias("fecha_minima"),
-        max("invoice_date").alias("fecha_maxima"),
-    ).show(truncate=False)
-
     print("\n--- TRANSFORMACIÓN CAPA GOLD ---")
 
     df_gold = (
@@ -218,26 +179,18 @@ def main():
         .orderBy("invoice_date", "category", "shopping_mall")
     )
 
-    print("\nVista de la capa Gold:")
     df_gold.show(20, truncate=False)
 
-    print("Guardando capa Gold en S3 LocalStack en formato Parquet...")
-    (
-        df_gold.write
-        .mode("overwrite")
-        .parquet(OUTPUT_PATH_S3)
-    )
+    if os.path.exists(GOLD_DIR):
+        shutil.rmtree(GOLD_DIR)
 
-    print("Guardando copia local de capa Gold en formato Parquet...")
-    (
-        df_gold.write
-        .mode("overwrite")
-        .parquet(OUTPUT_PATH_LOCAL)
-    )
+    print("Guardando capa Gold local en formato Parquet...")
+    df_gold.write.mode("overwrite").parquet(GOLD_DIR)
+
+    upload_gold_to_s3(s3_client)
 
     print("Proceso finalizado correctamente.")
-    print(f"Capa Gold en S3: {OUTPUT_PATH_S3}")
-    print(f"Copia local: {OUTPUT_PATH_LOCAL}")
+    print(f"Capa Gold local: {GOLD_DIR}")
 
     spark.stop()
 
