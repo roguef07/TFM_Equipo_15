@@ -5,8 +5,10 @@ from botocore.exceptions import ClientError
 
 
 BUCKET_NAME = "data-lake-crudo"
-DATA_DIR = "data"
 CSV_FILE = "customer_shopping_data.csv"
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, "data")
 LOCAL_FILE_PATH = os.path.join(DATA_DIR, CSV_FILE)
 S3_KEY = f"raw/{CSV_FILE}"
 
@@ -14,9 +16,9 @@ S3_KEY = f"raw/{CSV_FILE}"
 def create_s3_client():
     return boto3.client(
         "s3",
-        endpoint_url="http://localhost:4566",
-        aws_access_key_id="test",
-        aws_secret_access_key="test",
+        endpoint_url=os.environ.get("S3_ENDPOINT_URL", "http://localhost:5500"),
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", "test"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", "test"),
         region_name="us-east-1",
     )
 

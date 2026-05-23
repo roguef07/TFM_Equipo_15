@@ -2,7 +2,6 @@ import os
 import shutil
 
 import boto3
-import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     avg,
@@ -33,9 +32,9 @@ S3_GOLD_PREFIX = "gold/customer_sales_parquet"
 def create_s3_client():
     return boto3.client(
         "s3",
-        endpoint_url="http://localhost:4566",
-        aws_access_key_id="test",
-        aws_secret_access_key="test",
+        endpoint_url=os.environ.get("S3_ENDPOINT_URL", "http://localhost:5500"),
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY_ID", "test"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_ACCESS_KEY", "test"),
         region_name="us-east-1",
     )
 
@@ -45,11 +44,18 @@ def download_raw_from_s3(s3_client):
 
     print("Descargando CSV crudo desde LocalStack S3...")
 
-    s3_client.download_file(
-        BUCKET_NAME,
-        S3_RAW_KEY,
-        LOCAL_RAW_FILE
-    )
+    try:
+        s3_client.download_file(
+            BUCKET_NAME,
+            S3_RAW_KEY,
+            LOCAL_RAW_FILE
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"Fallo al descargar desde S3. "
+            f"¿Está LocalStack activo (docker-compose up -d) y se ejecutó 01_upload_s3.py? "
+            f"Error original: {e}"
+        )
 
     print(f"CSV descargado en: {LOCAL_RAW_FILE}")
 
@@ -68,11 +74,17 @@ def upload_gold_to_s3(s3_client):
 
             s3_key = f"{S3_GOLD_PREFIX}/{relative_path}"
 
-            s3_client.upload_file(
-                local_path,
-                BUCKET_NAME,
-                s3_key
-            )
+            try:
+                s3_client.upload_file(
+                    local_path,
+                    BUCKET_NAME,
+                    s3_key
+                )
+            except Exception as e:
+                raise RuntimeError(
+                    f"Fallo al subir '{local_path}' a S3. "
+                    f"¿Está LocalStack activo? Error original: {e}"
+                )
 
     print(
         f"Capa Gold subida a s3://{BUCKET_NAME}/{S3_GOLD_PREFIX}/"
@@ -83,7 +95,6 @@ def create_spark_session():
     return (
         SparkSession.builder
         .appName("CustomerShoppingPipeline")
-        .config("spark.sql.legacy.timeParserPolicy", "LEGACY")
         .getOrCreate()
     )
 
@@ -161,9 +172,6 @@ def main():
     print("\nConteo de valores nulos por columna:")
     show_null_counts(df)
 
-    duplicated_rows = total_rows - df.dropDuplicates().count()
-    print(f"\nFilas duplicadas encontradas: {duplicated_rows}")
-
     print("\nResumen estadístico de variables numéricas:")
     df.describe(["age", "quantity", "price"]).show()
 
@@ -179,6 +187,8 @@ def main():
     print("\n--- LIMPIEZA DE DATOS ---")
 
     df_clean = df.dropDuplicates()
+    duplicated_rows = total_rows - df_clean.count()
+    print(f"\nFilas duplicadas encontradas: {duplicated_rows}")
 
     df_clean = df_clean.dropna(
         subset=[
@@ -219,6 +229,8 @@ def main():
         round(col("quantity") * col("price"), 2)
     )
 
+    df_clean = df_clean.cache()
+
     print(
         f"Total de registros después de limpieza: {df_clean.count()}"
     )
@@ -252,11 +264,6 @@ def main():
             count("*").alias("cantidad_transacciones"),
             round(avg("total_sales"), 2).alias("ticket_promedio"),
         )
-        .orderBy(
-            "invoice_date",
-            "category",
-            "shopping_mall"
-        )
     )
 
     df_gold.show(20, truncate=False)
@@ -273,7 +280,9 @@ def main():
         "customer_sales_gold.parquet"
     )
 
-    df_gold.toPandas().to_parquet(
+    df_gold.toPandas().sort_values(
+        ["invoice_date", "category", "shopping_mall"]
+    ).to_parquet(
         gold_file_path,
         index=False
     )
