@@ -30,6 +30,7 @@ S3_GOLD_PREFIX = "gold/customer_sales_parquet"
 
 
 def create_s3_client():
+    """Crea cliente boto3 apuntando a LocalStack S3."""
     return boto3.client(
         "s3",
         endpoint_url=os.environ.get("S3_ENDPOINT_URL", "http://localhost:5500"),
@@ -40,6 +41,7 @@ def create_s3_client():
 
 
 def download_raw_from_s3(s3_client):
+    """Descarga el CSV crudo desde LocalStack S3 a data/raw/."""
     os.makedirs(RAW_DIR, exist_ok=True)
 
     print("Descargando CSV crudo desde LocalStack S3...")
@@ -61,6 +63,11 @@ def download_raw_from_s3(s3_client):
 
 
 def upload_gold_to_s3(s3_client):
+    """Limpia el prefijo Gold en S3 y sube los Parquet locales generados por Spark."""
+    response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=S3_GOLD_PREFIX)
+    for obj in response.get("Contents", []):
+        s3_client.delete_object(Bucket=BUCKET_NAME, Key=obj["Key"])
+
     print("Subiendo capa Gold Parquet a LocalStack S3...")
 
     for root, _, files in os.walk(GOLD_DIR):
@@ -92,6 +99,7 @@ def upload_gold_to_s3(s3_client):
 
 
 def create_spark_session():
+    """Inicializa la sesión de Spark para procesamiento distribuido."""
     return (
         SparkSession.builder
         .appName("CustomerShoppingPipeline")
@@ -273,24 +281,15 @@ def main():
     if os.path.exists(GOLD_DIR):
         shutil.rmtree(GOLD_DIR)
 
-    os.makedirs(GOLD_DIR, exist_ok=True)
-
-    gold_file_path = os.path.join(
-        GOLD_DIR,
-        "customer_sales_gold.parquet"
-    )
-
-    df_gold.toPandas().sort_values(
-        ["invoice_date", "category", "shopping_mall"]
-    ).to_parquet(
-        gold_file_path,
-        index=False
-    )
+    df_gold.orderBy("invoice_date", "category", "shopping_mall") \
+        .coalesce(1) \
+        .write.mode("overwrite") \
+        .parquet(GOLD_DIR)
 
     upload_gold_to_s3(s3_client)
 
     print("Proceso finalizado correctamente.")
-    print(f"Capa Gold local: {gold_file_path}")
+    print(f"Capa Gold local: {GOLD_DIR}")
 
     spark.stop()
 

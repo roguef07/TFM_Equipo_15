@@ -6,7 +6,7 @@
 -- Vista 1: Ventas agregadas por categoría y mes
 CREATE OR REPLACE VIEW dm_ventas_por_categoria_mes AS
 SELECT
-    DATE_TRUNC('month', invoice_date)::DATE                             AS mes,
+    DATE_TRUNC('month', invoice_date::TIMESTAMP)::DATE                  AS mes,
     category                                                            AS categoria,
     ROUND(SUM(ventas_totales)::NUMERIC, 2)                              AS ventas_totales,
     SUM(unidades_vendidas)                                              AS unidades_vendidas,
@@ -31,7 +31,7 @@ GROUP BY shopping_mall;
 -- Vista 3: Evolución de ventas diarias (serie temporal para forecasting)
 CREATE OR REPLACE VIEW dm_evolucion_diaria AS
 SELECT
-    invoice_date                                                        AS fecha,
+    invoice_date::DATE                                                  AS fecha,
     ROUND(SUM(ventas_totales)::NUMERIC, 2)                              AS ventas_totales,
     SUM(unidades_vendidas)                                              AS unidades_vendidas,
     SUM(cantidad_transacciones)                                         AS transacciones
@@ -41,7 +41,7 @@ GROUP BY invoice_date;
 -- Vista 4: Tabla resumen para dashboard BI (granularidad: fecha + categoría + mall)
 CREATE OR REPLACE VIEW dm_dashboard_bi AS
 SELECT
-    invoice_date                                                        AS fecha,
+    invoice_date::DATE                                                  AS fecha,
     category                                                            AS categoria,
     shopping_mall                                                       AS centro_comercial,
     ROUND(ventas_totales::NUMERIC, 2)                                   AS ventas_totales,

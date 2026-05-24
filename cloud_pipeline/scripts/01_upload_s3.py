@@ -14,6 +14,7 @@ S3_KEY = f"raw/{CSV_FILE}"
 
 
 def create_s3_client():
+    """Crea cliente boto3 apuntando a LocalStack S3."""
     return boto3.client(
         "s3",
         endpoint_url=os.environ.get("S3_ENDPOINT_URL", "http://localhost:5500"),
@@ -24,6 +25,7 @@ def create_s3_client():
 
 
 def create_bucket_if_not_exists(s3_client):
+    """Crea el bucket S3 si no existe; no falla si ya existe."""
     try:
         s3_client.head_bucket(Bucket=BUCKET_NAME)
         print(f"El bucket '{BUCKET_NAME}' ya existe.")
@@ -33,6 +35,7 @@ def create_bucket_if_not_exists(s3_client):
 
 
 def upload_file_to_s3(s3_client):
+    """Sube el CSV crudo a s3://data-lake-crudo/raw/."""
     if not os.path.exists(LOCAL_FILE_PATH):
         raise FileNotFoundError(
             f"No se encontró el archivo {LOCAL_FILE_PATH}. "
@@ -49,6 +52,7 @@ def upload_file_to_s3(s3_client):
 
 
 def main():
+    """Crea bucket y sube el CSV de ventas a LocalStack S3 (capa Raw)."""
     s3_client = create_s3_client()
     create_bucket_if_not_exists(s3_client)
     upload_file_to_s3(s3_client)

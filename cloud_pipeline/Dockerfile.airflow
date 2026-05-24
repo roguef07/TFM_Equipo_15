@@ -11,4 +11,10 @@ ENV PATH="${JAVA_HOME}/bin:${PATH}"
 
 USER airflow
 
-RUN pip install --no-cache-dir pyspark==3.5.1 pyarrow==17.0.0
+RUN pip install --no-cache-dir \
+    kaggle==1.6.17 \
+    boto3==1.35.0 \
+    pyspark==3.5.1 \
+    pyarrow==17.0.0 \
+    pandas==2.2.3 \
+    psycopg2-binary==2.9.10

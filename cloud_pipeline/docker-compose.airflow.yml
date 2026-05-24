@@ -18,9 +18,9 @@ services:
       _AIRFLOW_WWW_USER_CREATE: "true"
       _AIRFLOW_WWW_USER_USERNAME: admin
       _AIRFLOW_WWW_USER_PASSWORD: admin
-      # Endpoints del pipeline principal (accesibles vía host-gateway)
-      S3_ENDPOINT_URL: "http://host-gateway:5500"
-      POSTGRES_HOST: "host-gateway"
+      # Endpoints del pipeline principal (misma red Docker cloud_pipeline_default)
+      S3_ENDPOINT_URL: "http://localstack:4566"
+      POSTGRES_HOST: "postgres_dw"
     ports:
       - "8080:8080"
     volumes:
@@ -36,9 +36,6 @@ services:
       timeout: 10s
       retries: 5
       start_period: 90s
-    extra_hosts:
-      - "host-gateway:host-gateway"
-
   airflow-db:
     image: postgres:16
     container_name: airflow_db

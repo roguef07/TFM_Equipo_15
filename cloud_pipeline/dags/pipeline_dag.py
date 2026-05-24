@@ -45,4 +45,9 @@ with DAG(
         bash_command=f"python {SCRIPTS_DIR / '03_load_postgres.py'}",
     )
 
-    download_dataset >> upload_to_s3 >> spark_transform >> load_postgres
+    create_datamart = BashOperator(
+        task_id="create_datamart",
+        bash_command=f"python {SCRIPTS_DIR / '04_create_datamart.py'}",
+    )
+
+    download_dataset >> upload_to_s3 >> spark_transform >> load_postgres >> create_datamart

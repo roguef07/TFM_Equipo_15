@@ -11,6 +11,7 @@ ZIP_FILE = os.path.join(DATA_DIR, "customer-shopping-dataset.zip")
 
 
 def main():
+    """Descarga y descomprime el dataset de Kaggle en data/."""
     os.makedirs(DATA_DIR, exist_ok=True)
 
     print("Autenticando con Kaggle...")

@@ -1,6 +1,5 @@
 # Cloud Pipeline – Customer Shopping Data  
-## Arquitectura Cloud-Native para Forecasting Retail
-
+## Arquitectura Cloud-Native 
 ---
 
 # Descripción del Proyecto
@@ -46,7 +45,7 @@ SQL Data Mart
 | LocalStack | Simulación de AWS S3 |
 | PySpark | Procesamiento distribuido |
 | PostgreSQL | Data Warehouse |
-| SQLAlchemy | Conexión Python y PostgreSQL |
+| psycopg2 | Conexión Python y PostgreSQL |
 | Kaggle API | Descarga automática del dataset |
 | Power BI | Visualización y dashboards (Opcional)|
 | Apache Airflow | Orquestación del pipeline |
@@ -67,7 +66,8 @@ cloud_pipeline/
 │   ├── 00_download_kaggle.py
 │   ├── 01_upload_s3.py
 │   ├── 02_spark_transform.py
-│   └── 03_load_postgres.py
+│   ├── 03_load_postgres.py
+│   └── 04_create_datamart.py
 │
 ├── sql/
 │   └── datamart.sql
@@ -240,13 +240,13 @@ docker compose ps
 
 ## Con Airflow (Opción Recomendada)
 
-Apache Airflow orquesta los 4 scripts automáticamente en orden, con reintentos y monitorización desde una interfaz web.
+Apache Airflow orquesta los 5 scripts automáticamente en orden, con reintentos y monitorización desde una interfaz web.
 
 > **Requisito previo:** el entorno base debe estar levantado primero:
 > ```bash
 > docker compose up -d
 > ```
-> Airflow necesita acceder a LocalStack (puerto 5500) y PostgreSQL (puerto 5432) del host.
+> Airflow corre dentro de Docker y se comunica con LocalStack y PostgreSQL por red interna (`localstack:4566` y `postgres_dw:5432`). Los puertos del host (5500, 5432) son solo para la ejecución manual desde tu máquina.
 
 ### Construir y levantar entorno Airflow
 
@@ -256,7 +256,7 @@ La imagen de Airflow incluye Java (para PySpark) y se construye localmente:
 docker compose -f docker-compose.airflow.yml up -d --build
 ```
 
-La primera vez ouede tarda varios minutos por la descarga e instalación de Java y PySpark.
+La primera vez puede tardar varios minutos por la descarga e instalación de Java y PySpark.
 
 ### Acceder a la UI de Airflow
 
@@ -273,7 +273,8 @@ Contraseña: admin
 3. Activar el toggle (ON)
 4. Hacer clic en "Trigger DAG" para ejecutarlo manualmente
 
-El DAG ejecuta en orden: descarga del dataset → subida a S3 → transformación PySpark → carga a PostgreSQL.
+El DAG ejecuta en orden: descarga del dataset → subida a S3 → transformación PySpark → carga a PostgreSQL → creación del Datamart.
+
 
 ### Apagar entorno Airflow
 
@@ -286,6 +287,13 @@ docker compose -f docker-compose.airflow.yml down
 ## Ejecución Manual (Alternativa)
 
 Ejecutar los scripts **en orden**:
+
+Nota: Para la ejecución manual es necesario instalar las dependencias del requirements.txt
+
+```bash
+pip install -r requirements.txt
+
+```
 
 ### Paso 1 – Descargar Dataset desde Kaggle
 
@@ -339,7 +347,13 @@ python scripts/03_load_postgres.py
 
 ### Paso 5 – Creación del Data Mart
 
-Ejecutar el SQL directamente dentro del contenedor PostgreSQL:
+Para ejecución manual (sin Airflow):
+
+```bash
+python scripts/04_create_datamart.py
+```
+
+**Alternativa directa vía SQL:**
 
 **Windows (PowerShell):**
 ```powershell
