@@ -1,3 +1,36 @@
-forecast_app/__pycache__/
+# Entornos virtuales
+.venv/
+venv/
+env/
 
+# Editor
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Datos — no van al repo (ver README para regenerarlos)
+*.csv
+*.parquet
+*.json.gz
+
+# Modelos serializados
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.onnx
+
+# Ollama / LLM cache
+*.gguf
+*.bin
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Archivos temporales del proyecto
 doc/diagramas/.$Modelo_sistema.drawio.bkp
