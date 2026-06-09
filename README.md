@@ -27,7 +27,7 @@ En este repositorio se encontrará el código desarrollado relacionado con nuest
 
 Antes de ejecutar la aplicación, es necesario contar con:
 
-* Python **3.9 o superior**
+* Python **3.10 o superior**
 * pip
 * Entorno virtual (recomendado)
 
@@ -74,12 +74,32 @@ pip install -r forecast_app/requirements.txt
 
 ---
 
+## Configurar Ollama (necesario para anomalías e informe ejecutivo)
+
+La app utiliza Ollama como LLM local para generar explicaciones de anomalías e informes ejecutivos. No requiere API key ni conexión a internet.
+
+**RAM recomendada:** mínimo 8 GB (para `llama3.2`), recomendado 16 GB.
+
+1. Descarga e instala Ollama desde [ollama.com/download](https://ollama.com/download)
+2. Descarga el modelo (solo la primera vez, ~2 GB):
+   ```bash
+   ollama pull llama3.2
+   ```
+3. Arranca el servidor y déjalo corriendo en una terminal aparte:
+   ```bash
+   ollama serve
+   ```
+
+Si Ollama no está corriendo, la app sigue funcionando con normalidad: los modelos de forecasting y los gráficos se calculan y muestran igualmente. Solo las explicaciones de anomalías y el informe ejecutivo mostrarán un aviso en su lugar.
+
+---
+
 ## Ejecución de la aplicación
 
 Una vez instaladas las dependencias, ejecutar:
 
 ```bash
-python -m streamlit run forecast_app/app.py
+streamlit run app/main.py
 ```
 
 Esto abrirá automáticamente la aplicación en el navegador web.
@@ -124,6 +144,50 @@ El modelo de datos funcional del sistma es el siguiente, donde se tiene la inter
 
 ---
 
+
+## Archivos no incluidos en el repositorio
+
+Los datasets y el entorno virtual no están en el repo por su tamaño. Aquí cómo recuperarlos:
+
+### Datos (dataset Olist de Kaggle)
+
+Los CSVs originales se descargan con el script incluido. Necesitas una cuenta de Kaggle y tu API key configurada (`~/.kaggle/kaggle.json`):
+
+```bash
+cd scrapping
+pip install -r requirements.txt
+python Download_dataset.py
+```
+
+Los archivos se guardan en `scrapping/data/`. El notebook `EDA.ipynb` y el script `app.py` de esa carpeta también generan la tabla analítica `tabla_analitica_olist.csv` que usa la app principal.
+
+### Entorno virtual
+
+```bash
+python -m venv .venv
+.venv\Scripts\activate          # Windows
+pip install -r forecast_app/requirements.txt
+```
+
+---
+
+## Módulos de `forecast_app`
+
+| Archivo | Función |
+|---------|---------|
+| `app.py` | Orquestador Streamlit: carga de datos, EDA, selección de modelos, renderizado y sección de informe |
+| `preprocessing.py` | Limpia el CSV y agrega a nivel semanal por categoría |
+| `model_selection.py` | Entrena SARIMA, Regresión Lineal y XGBoost; elige el mejor por RMSE |
+| `models.py` | Búsqueda de hiperparámetros SARIMA por AIC |
+| `pipelines.py` | Pipelines sklearn para Regresión Lineal y XGBoost |
+| `features.py` | Ingeniería de características (lags, medias móviles, variables de calendario) |
+| `forecast.py` | Genera predicciones futuras con el modelo ganador |
+| `evaluation.py` | Calcula MAE, RMSE y MAPE |
+| `explainer.py` | Analiza la serie y genera la explicación de selección de modelo |
+| `anomaly_detector.py` | Detecta semanas atípicas (>1.5σ) y genera hipótesis vía Ollama |
+| `report_generator.py` | Genera el texto ejecutivo vía Ollama y construye el HTML autocontenido para descarga |
+
+---
 
 > [!NOTE]
 > Work in progress.
