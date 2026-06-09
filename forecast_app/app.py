@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 import io
+import textwrap
 from matplotlib.backends.backend_pdf import PdfPages
 
 from explainer import analyze_series, generate_explanation
@@ -81,6 +82,50 @@ def render_eda(df: pd.DataFrame, cat_col: str) -> None:
         fig3.tight_layout()
         st.pyplot(fig3)
         plt.close(fig3)
+
+
+def text_to_fig_pages(title: str, text: str, width: int = 90, lines_per_page: int = 45):
+    """Convierte un bloque de texto en una lista de matplotlib.Figure paginadas.
+
+    - `width`: número aproximado de caracteres por línea para envolver.
+    - `lines_per_page`: número de líneas por página.
+    """
+    text = text.replace('\r\n', '\n').replace('\r', '\n')
+    paragraphs = [p for p in text.split('\n\n') if p.strip()]
+    wrapped_lines = []
+    for p in paragraphs:
+        for line in p.split('\n'):
+            wrapped = textwrap.wrap(line, width=width) or [""]
+            wrapped_lines.extend(wrapped)
+        wrapped_lines.append("")
+
+    if wrapped_lines and wrapped_lines[-1] == "":
+        wrapped_lines.pop()
+
+    pages = []
+    for i in range(0, len(wrapped_lines), lines_per_page):
+        page_lines = wrapped_lines[i : i + lines_per_page]
+        fig = plt.figure(figsize=(8.27, 11.69))
+        ax = fig.add_subplot(111)
+        ax.axis("off")
+        y = 0.95
+        if title:
+            fig.text(0.02, y, title, fontsize=12, weight="bold", va="top")
+            y -= 0.04
+        for ln in page_lines:
+            fig.text(0.02, y, ln, fontsize=9, family="DejaVu Sans", va="top")
+            y -= 0.021
+        pages.append(fig)
+
+    if not pages:
+        fig = plt.figure(figsize=(8.27, 11.69))
+        ax = fig.add_subplot(111)
+        ax.axis("off")
+        if title:
+            fig.text(0.02, 0.95, title, fontsize=12, weight="bold", va="top")
+        pages.append(fig)
+
+    return pages
 
 
 # ── Configuración de página ───────────────────────────────────────────
@@ -192,8 +237,9 @@ if "data" in st.session_state:
         summary_rows: list[dict] = []
         forecasts_all: list[pd.DataFrame] = []
 
-        # colector de figuras para generar PDF más tarde
+        # colector de figuras y textos para generar PDF más tarde
         pdf_figs: list = []
+        pdf_texts: list = []
 
         for i, cat in enumerate(categories):
             st.markdown(f"---\n### Categoría: **{cat}**")
@@ -232,6 +278,8 @@ if "data" in st.session_state:
 
                 # Explicación detallada
                 explanation = generate_explanation(cat, best_model, all_metrics, chars)
+                # recolectar texto para el PDF
+                pdf_texts.append({"category": cat, "explanation": explanation})
                 with st.expander(
                     f"Ver análisis completo — modelo seleccionado: **{best_model}**",
                     expanded=True,
@@ -355,6 +403,16 @@ if "data" in st.session_state:
                     tablef.scale(1, 1.2)
                     pdf.savefig(fig_fore)
                     plt.close(fig_fore)
+
+                # Añadir páginas de texto con las explicaciones (antes de las figuras)
+                for item in pdf_texts:
+                    try:
+                        pages = text_to_fig_pages(title=f"Categoría: {item['category']}", text=item['explanation'], width=90, lines_per_page=45)
+                        for p in pages:
+                            pdf.savefig(p)
+                            plt.close(p)
+                    except Exception:
+                        continue
 
                 # Añadir todas las figuras de categoría y reporte
                 for f in pdf_figs:
