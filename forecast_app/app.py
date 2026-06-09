@@ -3,8 +3,6 @@ import logging
 import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
-import io
-from matplotlib.backends.backend_pdf import PdfPages
 
 from explainer import analyze_series, generate_explanation
 from model_selection import run_all_models
@@ -19,7 +17,7 @@ def render_eda(df: pd.DataFrame, cat_col: str) -> None:
     """Renderiza el análisis exploratorio de datos completo."""
     st.subheader("Análisis Exploratorio de Datos (EDA)")
 
-    with st.expander("Ver análisis completo", expanded=False):
+    with st.expander("Ver análisis completo", expanded=True):
 
         # 1. Estadísticas descriptivas
         st.markdown("#### Estadísticas descriptivas")
@@ -86,11 +84,6 @@ def render_eda(df: pd.DataFrame, cat_col: str) -> None:
 # ── Configuración de página ───────────────────────────────────────────
 st.set_page_config(layout="wide", page_title="Pronóstico de Ventas")
 st.title("Sistema de Pronóstico de Ventas")
-st.markdown(
-    "Aplicación para generar pronósticos semanales de ventas por categoría de producto. "
-    "Carga un CSV para comenzar."
-)
-
 
 # ── Carga de archivo y selección de columnas ─────────────────────────
 file = st.file_uploader("Cargar archivo CSV", type=["csv"])
@@ -104,10 +97,6 @@ if file:
 
     st.subheader("Vista previa")
     st.dataframe(df_raw.head(), use_container_width=True)
-
-    st.markdown(
-    "Seleccione las columnas correspondientes para cada variable."
-    " El sistema intentará limpiar los datos y convertirlos a un formato semanal.")
 
     cols = df_raw.columns.tolist()
     col1, col2, col3, col4 = st.columns(4)
@@ -150,7 +139,7 @@ if file:
 
     if "data" in st.session_state:
         st.subheader("Datos semanales agregados")
-        st.dataframe(st.session_state["data"].head(100), use_container_width=True)
+        st.dataframe(st.session_state["data"].head(20), use_container_width=True)
 
 
 # ── EDA + Selección automática de modelo ─────────────────────────────
@@ -191,9 +180,6 @@ if "data" in st.session_state:
         progress_bar = st.progress(0)
         summary_rows: list[dict] = []
         forecasts_all: list[pd.DataFrame] = []
-
-        # colector de figuras para generar PDF más tarde
-        pdf_figs: list = []
 
         for i, cat in enumerate(categories):
             st.markdown(f"---\n### Categoría: **{cat}**")
@@ -267,8 +253,7 @@ if "data" in st.session_state:
                 fig.suptitle(f"Categoría: {cat}  —  Modelo: {best_model}", fontsize=11)
                 fig.tight_layout()
                 st.pyplot(fig)
-                # guardar figura para PDF (no cerrar aún)
-                pdf_figs.append(fig)
+                plt.close(fig)
 
             except ValueError as ve:
                 st.warning(f"Categoría '{cat}' omitida: {ve}")
@@ -300,76 +285,3 @@ if "data" in st.session_state:
                 pd.concat(forecasts_all, ignore_index=True),
                 use_container_width=True,
             )
-        # --- Generar PDF con todo lo mostrado ---
-        try:
-            buffer = io.BytesIO()
-            with PdfPages(buffer) as pdf:
-                # Portada / resumen textual
-                fig_cover = plt.figure(figsize=(8.27, 11.69))  # A4
-                fig_cover.clf()
-                txt = (
-                    "Reporte de pronósticos\n\n"
-                    f"Categorías procesadas: {len(summary_rows)}\n"
-                    f"Horizonte (semanas): {horizon}\n\n"
-                    "Resumen por categoría:\n"
-                )
-                fig_cover.text(0.02, 0.95, txt, fontsize=12, va="top")
-                pdf.savefig(fig_cover)
-                plt.close(fig_cover)
-
-                # Tabla resumen
-                df_summary = pd.DataFrame(summary_rows)
-                if not df_summary.empty:
-                    fig_table = plt.figure(figsize=(8.27, 11.69))
-                    ax = fig_table.add_subplot(111)
-                    ax.axis("off")
-                    table = ax.table(
-                        cellText=df_summary.values,
-                        colLabels=df_summary.columns,
-                        loc="center",
-                    )
-                    table.auto_set_font_size(False)
-                    table.set_fontsize(8)
-                    table.scale(1, 1.5)
-                    pdf.savefig(fig_table)
-                    plt.close(fig_table)
-
-                # Tabla pronóstico combinado (primeras filas)
-                try:
-                    combined_df = pd.concat(forecasts_all, ignore_index=True) if forecasts_all else pd.DataFrame()
-                except Exception:
-                    combined_df = pd.DataFrame()
-
-                if not combined_df.empty:
-                    fig_fore = plt.figure(figsize=(8.27, 11.69))
-                    axf = fig_fore.add_subplot(111)
-                    axf.axis("off")
-                    sample_fore = combined_df.head(80)
-                    tablef = axf.table(
-                        cellText=sample_fore.values,
-                        colLabels=sample_fore.columns,
-                        loc="center",
-                    )
-                    tablef.auto_set_font_size(False)
-                    tablef.set_fontsize(7)
-                    tablef.scale(1, 1.2)
-                    pdf.savefig(fig_fore)
-                    plt.close(fig_fore)
-
-                # Añadir todas las figuras de categoría y reporte
-                for f in pdf_figs:
-                    try:
-                        pdf.savefig(f)
-                        plt.close(f)
-                    except Exception:
-                        continue
-
-            buffer.seek(0)
-            st.download_button(
-                label="📥 Descargar reporte completo (PDF)",
-                data=buffer.getvalue(),
-                file_name="reporte_pronosticos.pdf",
-                mime="application/pdf",
-            )
-        except Exception as e:
-            st.warning(f"No se pudo generar el PDF: {e}")
