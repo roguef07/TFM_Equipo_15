@@ -239,7 +239,7 @@ with st.sidebar:
 
     # ── Contáctanos ───────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown("### Conoce más sobre el proyeco en:")
+    st.markdown("### Conoce más sobre el proyecto en:")
     st.markdown(
         '<a href="https://github.com/roguef07/TFM_Equipo_15/tree/main" '
         'target="_blank" style="color:#1e40af;font-weight:500;">'
